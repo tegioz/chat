@@ -1,0 +1,16 @@
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    var socket = io.connect('http://localhost:8888');
+    socket.on('connected', function (data) {
+        console.log(data);
+        socket.emit('subscribe', {'username':'tegioz', 'rooms':['pruebas']});
+        socket.emit('newMessage', {'room':'pruebas', 'msg':'Holaaaaaa'});
+    });
+    socket.on('newMessage', function (data) {
+        console.log("newMessage: %s", JSON.stringify(data));
+    });
+    setInterval(function() {
+        socket.emit('unsubscribe', {'rooms':['pruebas']});
+        socket.disconnect();
+    }, 600000);
+</script>
