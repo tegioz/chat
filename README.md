@@ -38,3 +38,12 @@ Now open this URL in your browser:
     http://localhost:8888/
 
 and you're done ;)
+
+### Broadcast API
+
+Send messages to all connected users:
+
+    Content-Type: application/json
+    POST /api/broadcast/
+
+    {"msg": "Hello!"}
