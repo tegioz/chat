@@ -16,6 +16,9 @@
     socket.on('connected', function (data) {
         console.log(data);
 
+        // Get users connected to mainroom
+        socket.emit('getUsersInRoom', {'room':'MainRoom'});
+
         if (debug) {
             // Subscription to rooms
             socket.emit('subscribe', {'username':'sergio', 'rooms':['sampleroom']});
