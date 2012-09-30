@@ -53,15 +53,6 @@
 
         // Close modal if opened
         $('#modal_joinroom').modal('hide');
-
-        // Toogle to created room
-        setTimeout(function() {
-            var newroomtab = '[href="#'+data.room+'"]';
-            $(newroomtab).click();
-        }, 100);
-
-        // Get users connected to room
-        socket.emit('getUsersInRoom', {'room':data.room});
     });
 
     // Unsubscription to room confirmed
@@ -107,6 +98,7 @@
 
     // Users in room received
     socket.on('usersInRoom', function(data) {
+        console.log('usersInRoom: %s', JSON.stringify(data));
         _.each(data.users, function(user) {
             addUser(user);
         });
@@ -166,6 +158,13 @@
     var addRoom = function(room) {
         getTemplate('js/templates/room.handlebars', function(template) {
             $('#rooms').append(template({'room':room}));
+        
+            // Toogle to created room
+            var newroomtab = '[href="#'+room+'"]';
+            $(newroomtab).click();
+
+            // Get users connected to room
+            socket.emit('getUsersInRoom', {'room':room});
         });
     };
     
@@ -205,10 +204,8 @@
     var roomExists = function(room) {
         var room_selector = '#'+room;
         if ($(room_selector).length) {
-            console.log('existe');
             return true;
         } else {
-            console.log('no existe');
             return false;
         }
     };
