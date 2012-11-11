@@ -19,6 +19,13 @@
         // Get users connected to mainroom
         socket.emit('getUsersInRoom', {'room':'MainRoom'});
 
+        // Check username parameter in query string and update it if present
+        setTimeout(function() {
+            if (_.has(urlParams, 'username')) {
+                socket.emit('setNickname', {'username':urlParams['username']});
+            }
+        }, 500);
+
         if (debug) {
             // Subscription to rooms
             socket.emit('subscribe', {'username':'sergio', 'rooms':['sampleroom']});
