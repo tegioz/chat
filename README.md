@@ -7,7 +7,7 @@ Built with:
 
 This is just a <strong>proof of concept</strong> of what could be done with these technologies.
 
-If you just want to see it running, visit: http://www.tegioz.com:8888
+If you just want to see it running, visit: http://www.tegioz.com/chat/
 
 ### Requires
 
@@ -17,7 +17,7 @@ If you just want to see it running, visit: http://www.tegioz.com:8888
 
 ### Get the code
 
-    git clone git@github.com:tegioz/chat.git
+    git clone https://github.com/tegioz/chat.git
 
 ### Run
 
