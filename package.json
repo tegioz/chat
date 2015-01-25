@@ -5,8 +5,8 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "express": "3.x",
-    "socket.io": "",
+    "express": "3.3.8",
+    "socket.io": "0.9.17",
     "underscore": "",
     "redis": "",
     "validator": ""
