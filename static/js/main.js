@@ -227,7 +227,7 @@
 
     // Get room name from input field
     var getRoomName = function() {
-        var name = $('#room_name').val();
+        var name = $('#room_name').val().trim();
         $('#room_name').val("");
         return name;
     };
