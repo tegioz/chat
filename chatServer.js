@@ -18,17 +18,14 @@ var conf = {
 // External dependencies
 var express = require('express'),
     http = require('http'),
-    socketio = require('socket.io'),
     events = require('events'),
     _ = require('underscore'),
-    redis = require('redis'),
     sanitize = require('validator').sanitize;
 
 // HTTP Server configuration & launch
 var app = express(),
-    server = http.createServer(app),
-    io = socketio.listen(server);
-server.listen(conf.port);
+    server = http.createServer(app);
+    server.listen(conf.port);
 
 // Express app configuration
 app.configure(function() {
@@ -36,17 +33,11 @@ app.configure(function() {
     app.use(express.static(__dirname + '/static'));
 });
 
-// Socket.io store configuration
-var RedisStore = require('socket.io/lib/stores/redis'),
-    pub = redis.createClient(conf.dbPort, conf.dbHost, conf.dbOptions),
-    sub = redis.createClient(conf.dbPort, conf.dbHost, conf.dbOptions),
-    db = redis.createClient(conf.dbPort, conf.dbHost, conf.dbOptions);
-io.set('store', new RedisStore({
-    redisPub: pub,
-    redisSub: sub,
-    redisClient: db
-}));
-io.set('log level', 1);
+var io = require('socket.io')(server);
+var redis = require('socket.io-redis');
+io.adapter(redis({ host: conf.dbHost, port: conf.dbPort }));
+
+var db = require('redis').createClient(conf.dbPort,conf.dbHost);
 
 // Logger configuration
 var logger = new events.EventEmitter();
@@ -79,12 +70,10 @@ var sanitizeMessage = function(req, res, next) {
 
 // Send a message to all active rooms
 var sendBroadcast = function(text) {
-    _.each(_.keys(io.sockets.manager.rooms), function(room) {
-        room = room.substr(1); // Forward slash before room name (socket.io)
-        // Don't send messages to default "" room 
+    _.each(io.nsps['/'].adapter.rooms, function(room) {
         if (room) {
             var message = {'room':room, 'username':'ServerBot', 'msg':text, 'date':new Date()};
-            io.sockets.in(room).emit('newMessage', message);
+            io.to(room).emit('newMessage', message);
         }
     });
     logger.emit('newEvent', 'newBroadcastMessage', {'msg':text});
@@ -127,7 +116,7 @@ io.sockets.on('connection', function(socket) {
     socket.emit('subscriptionConfirmed', {'room':conf.mainroom});
     // Notify subscription to all users in room
     var data = {'room':conf.mainroom, 'username':'anonymous', 'msg':'----- Joined the room -----', 'id':socket.id};
-    io.sockets.in(conf.mainroom).emit('userJoinsRoom', data);
+    io.to(conf.mainroom).emit('userJoinsRoom', data);
 
     // User wants to subscribe to [data.rooms]
     socket.on('subscribe', function(data) {
@@ -145,7 +134,7 @@ io.sockets.on('connection', function(socket) {
         
                 // Notify subscription to all users in room
                 var message = {'room':room, 'username':username, 'msg':'----- Joined the room -----', 'id':socket.id};
-                io.sockets.in(room).emit('userJoinsRoom', message);
+                io.to(room).emit('userJoinsRoom', message);
             });
         });
     });
@@ -166,7 +155,7 @@ io.sockets.on('connection', function(socket) {
         
                     // Notify unsubscription to all users in room
                     var message = {'room':room, 'username':username, 'msg':'----- Left the room -----', 'id': socket.id};
-                    io.sockets.in(room).emit('userLeavesRoom', message);
+                    io.to(room).emit('userLeavesRoom', message);
                 }
             });
         });
@@ -174,23 +163,23 @@ io.sockets.on('connection', function(socket) {
 
     // User wants to know what rooms he has joined
     socket.on('getRooms', function(data) {
-        socket.emit('roomsReceived', io.sockets.manager.roomClients[socket.id]);
+        socket.emit('roomsReceived', socket.rooms);
         logger.emit('newEvent', 'userGetsRooms', {'socket':socket.id});
     });
 
     // Get users in given room
     socket.on('getUsersInRoom', function(data) {
         var usersInRoom = [];
-        var socketsInRoom = io.sockets.clients(data.room);
+        var socketsInRoom = _.keys(io.nsps['/'].adapter.rooms[data.room]);
         for (var i=0; i<socketsInRoom.length; i++) {
-            db.hgetall(socketsInRoom[i].id, function(err, obj) {
+            db.hgetall(socketsInRoom[i], function(err, obj) {
                 usersInRoom.push({'room':data.room, 'username':obj.username, 'id':obj.socketID});
                 // When we've finished with the last one, notify user
                 if (usersInRoom.length == socketsInRoom.length) {
                     socket.emit('usersInRoom', {'users':usersInRoom});
                 }
             });
-        } 
+        }
     });
 
     // User wants to change his nickname
@@ -203,11 +192,10 @@ io.sockets.on('connection', function(socket) {
             logger.emit('newEvent', 'userSetsNickname', {'socket':socket.id, 'oldUsername':username, 'newUsername':data.username});
 
             // Notify all users who belong to the same rooms that this one
-            _.each(_.keys(io.sockets.manager.roomClients[socket.id]), function(room) {
-                room = room.substr(1); // Forward slash before room name (socket.io)
+            _.each(socket.rooms, function(room) {
                 if (room) {
                     var info = {'room':room, 'oldUsername':username, 'newUsername':data.username, 'id':socket.id};
-                    io.sockets.in(room).emit('userNicknameUpdated', info);
+                    io.to(room).emit('userNicknameUpdated', info);
                 }
             });
         });
@@ -217,12 +205,11 @@ io.sockets.on('connection', function(socket) {
     socket.on('newMessage', function(data) {
         db.hgetall(socket.id, function(err, obj) {
             if (err) return logger.emit('newEvent', 'error', err);
-
             // Check if user is subscribed to room before sending his message
-            if (_.has(io.sockets.manager.roomClients[socket.id], "/"+data.room)) {
+            if (_.contains(_.values(socket.rooms), data.room)) {
                 var message = {'room':data.room, 'username':obj.username, 'msg':data.msg, 'date':new Date()};
                 // Send message to room
-                io.sockets.in(data.room).emit('newMessage', message);
+                io.to(data.room).emit('newMessage', message);
                 logger.emit('newEvent', 'newMessage', message);
             }
         });
@@ -230,9 +217,9 @@ io.sockets.on('connection', function(socket) {
 
     // Clean up on disconnect
     socket.on('disconnect', function() {
-    
+        
         // Get current rooms of user
-        var rooms = _.clone(io.sockets.manager.roomClients[socket.id]);
+        var rooms = socket.rooms;
         
         // Get user info from db
         db.hgetall(socket.id, function(err, obj) {
@@ -240,11 +227,10 @@ io.sockets.on('connection', function(socket) {
             logger.emit('newEvent', 'userDisconnected', {'socket':socket.id, 'username':obj.username});
 
             // Notify all users who belong to the same rooms that this one
-            _.each(_.keys(rooms), function(room) {
-                room = room.substr(1); // Forward slash before room name (socket.io)
+            _.each(rooms, function(room) {
                 if (room) {
                     var message = {'room':room, 'username':obj.username, 'msg':'----- Left the room -----', 'id':obj.socketID};
-                    io.sockets.in(room).emit('userLeavesRoom', message);
+                    io.to(room).emit('userLeavesRoom', message);
                 }
             });
         });
