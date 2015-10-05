@@ -259,8 +259,16 @@
 
     // Join new room
     $('#b_join_room').click(function(eventObject) {
-        eventObject.preventDefault();
-        socket.emit('subscribe', {'rooms':[getRoomName()]}); 
+        var roomName = getRoomName();
+
+        if (roomName) {
+            eventObject.preventDefault();
+            socket.emit('subscribe', {'rooms':[roomName]}); 
+
+        // Added error class if empty room name
+        } else {
+            $('#room_name').addClass('error');
+        }
     });
 
     // Leave current room
@@ -274,6 +282,13 @@
             $('[href="#MainRoom"]').click();
         } else {
             console.log('Cannot leave MainRoom, sorry');
+        }
+    });
+
+    // Remove error style to hide modal
+    $('#modal_joinroom').on('hidden.bs.modal', function (e) {
+        if ($('#room_name').hasClass('error')) {
+            $('#room_name').removeClass('error');
         }
     });
 
