@@ -10,7 +10,7 @@
     // Socket.io events
     // ***************************************************************************
     
-    var socket = io.connect('http://localhost:8888');
+    var socket = io.connect(window.location.host);
 
     // Connection established
     socket.on('connected', function (data) {
