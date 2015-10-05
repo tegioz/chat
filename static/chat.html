@@ -1,6 +1,6 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    var socket = io.connect('http://localhost:8888');
+    var socket = io.connect(window.location.host);
     socket.on('connected', function (data) {
         console.log(data);
         socket.emit('subscribe', {'username':'tegioz', 'rooms':['pruebas']});
