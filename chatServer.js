@@ -58,16 +58,6 @@ var requireAuthentication = function(req, res, next) {
     next();
 };
 
-// Sanitize message to avoid security problems
-var sanitizeMessage = function(req, res, next) {
-    if (req.body.msg) {
-        req.sanitizedMessage = sanitize(req.body.msg).xss();
-        next();
-    } else {
-        res.send(400, "No message provided");
-    }
-};
-
 // Send a message to all active rooms
 var sendBroadcast = function(text) {
     _.each(io.nsps['/'].adapter.rooms, function(room) {
@@ -89,8 +79,8 @@ app.get('/', function(req, res) {
 });
 
 // Broadcast message to all connected users
-app.post('/api/broadcast/', requireAuthentication, sanitizeMessage, function(req, res) {
-    sendBroadcast(req.sanitizedMessage);
+app.post('/api/broadcast/', requireAuthentication, function(req, res) {
+    sendBroadcast(req.body.msg);
     res.send(201, "Message sent to all rooms");
 }); 
 
