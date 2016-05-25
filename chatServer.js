@@ -60,11 +60,9 @@ var requireAuthentication = function(req, res, next) {
 
 // Send a message to all active rooms
 var sendBroadcast = function(text) {
-    _.each(io.nsps['/'].adapter.rooms, function(room) {
-        if (room) {
-            var message = {'room':room, 'username':'ServerBot', 'msg':text, 'date':new Date()};
-            io.to(room).emit('newMessage', message);
-        }
+    _.each(io.nsps['/'].adapter.rooms, function(sockets, room) {
+        var message = {'room':room, 'username':'ServerBot', 'msg':text, 'date':new Date()};
+        io.to(room).emit('newMessage', message);
     });
     logger.emit('newEvent', 'newBroadcastMessage', {'msg':text});
 };
