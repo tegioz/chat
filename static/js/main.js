@@ -95,7 +95,7 @@
         // Scroll down room messages
         var room_messages = '#'+data.room+' #room_messages';
         $(room_messages).animate({
-            scrollTop: $(room_messages).height()
+            scrollTop: $(room_messages).prop('scrollHeight')
         }, 300);
     });
 
