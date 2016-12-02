@@ -93,7 +93,7 @@
         addMessage(data);
 
         // Scroll down room messages
-        var room_messages = '#'+data.room+' #room_messages';
+        var room_messages = '#room_messages_'+data.room;
         $(room_messages).animate({
             scrollTop: $(room_messages).prop('scrollHeight')
         }, 300);
@@ -180,15 +180,24 @@
     // Add message to room
     var addMessage = function(msg) {
         getTemplate('js/templates/message.handlebars', function(template) {
-            var room_messages = '#'+msg.room+' #room_messages';
-            $(room_messages).append(template(msg));
+            var room_messages = '#room_messages_'+msg.room;
+            if ($(room_messages).length > 0) {
+              $(room_messages).append(template(msg));
+            } else {
+              var roomInterval = setInterval(function() {
+                if ($(room_messages).length > 0) {
+                  $(room_messages).append(template(msg));
+                  clearInterval(roomInterval);
+                }
+              }, 100);
+            }
         });
     };
-    
+
     // Add user to connected users list
     var addUser = function(user) {
         getTemplate('js/templates/user.handlebars', function(template) {
-            var room_users = '#'+user.room+' #room_users';
+            var room_users = '#room_users_'+user.room;
             // Add only if it doesn't exist in the room
             var user_badge = '#'+user.room+' #'+user.id;
             if (!($(user_badge).length)) {
