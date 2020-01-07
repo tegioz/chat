@@ -7,8 +7,6 @@ Built with:
 
 This is just a <strong>proof of concept</strong> of what could be done with these technologies.
 
-If you just want to see it running, visit: http://chat.tegioz.com
-
 ### Requires
 
   - Node.js
